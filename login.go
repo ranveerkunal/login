@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strings"
-
-	"bitbucket.org/doggrott/amigosreal/utils"
 
 	"github.com/martini-contrib/sessions"
 	"github.com/ranveerkunal/fb"
@@ -25,6 +24,13 @@ type LoginUserDB interface {
 	Login(interface{})
 }
 
+func Base64URLDecodeString(s string) ([]byte, error) {
+	if l := len(s) % 4; l > 0 {
+		s += string([]byte{'=', '=', '='}[0 : 4-l])
+	}
+	return base64.URLEncoding.DecodeString(s)
+}
+
 func Login(s sessions.Session, wlog *weblogger.Logger, ldb LoginUserDB, r *http.Request) (int, string) {
 	decoder := json.NewDecoder(r.Body)
 	lr := &LoginRequest{}
@@ -35,12 +41,12 @@ func Login(s sessions.Session, wlog *weblogger.Logger, ldb LoginUserDB, r *http.
 
 	// Decode the data.
 	sigpay := strings.Split(string(lr.SignedRequest), ".")
-	sig, err := utils.Base64URLDecodeString(sigpay[0])
+	sig, err := Base64URLDecodeString(sigpay[0])
 	if err != nil {
 		return http.StatusBadRequest, "Bad Signature: " + err.Error()
 	}
 
-	pay, err := utils.Base64URLDecodeString(sigpay[1])
+	pay, err := Base64URLDecodeString(sigpay[1])
 	if err != nil {
 		return http.StatusBadRequest, "Bad Payload: " + err.Error()
 	}
